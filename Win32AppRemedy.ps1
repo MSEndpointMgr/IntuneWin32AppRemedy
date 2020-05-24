@@ -1,3 +1,30 @@
+<#
+    .SYNOPSIS
+        Win32AppRemedy - An Azure Automation Runbook - requires the following Automation Variables defined: 
+        ClientID - The AppID of your service principal Azure AD App
+        ClientSecret - The ClientSecret of your service principal Azure AD App
+        TenantID - The AzureAD TenantID of your tenant
+        TeamsWebHook - The Webhook url for your Teams Reporting Channel 
+        TeamsReporting - True or False to turn Teams Reporting on off
+    .DESCRIPTION
+        Win32AppRemedy is used to remediate updates for Win32Apps that are assigned as available by using Device Based patching groups. 
+        These groups are dynamicly created based on devices that have the previous version installed, app is assigned as required to these groups with a deadline for install. 
+    .PARAMETER OrgAppID
+        Input parameter Intune AppID for the current application version
+    .PARAMETER UpdatedAppID
+        Input parameter Intune AppID for the updated application version
+    .PARAMETER OrgAppVersion            
+        Input parameter - Name of the current application in Intune, Example "Adobe Acrobat Reader DC 20.009.20042"
+    .PARAMETER OrgAppVersion            
+        Input parameter - Name of the updated application in Intune , Example "Adobe Acrobat Reader DC 20.009.20063"
+    .NOTES
+        Author:      Jan Ketil Skanke 
+        Contact:     @JankeSkanke
+        Created:     2020-03-29
+        Updated:     2020-03-29
+        Version history:
+        1.0.0 - (2020-05-20) Initial Version with app remediation groups
+    #>    
 param (
         [parameter(Mandatory = $true)]
         $OrgAppID,
@@ -185,7 +212,35 @@ function Get-IntuneWin32AppAssignment {
     }
 }#endfunction
 function Add-IntuneWin32AppAssignment {
-   
+    <#
+    .SYNOPSIS
+        Assign a Win32App to a Device Group
+    .DESCRIPTION
+        Assign a Win32App to a Device Group
+    .PARAMETER AppID
+        Specify the AppID for a Win32 application.
+    .PARAMETER GroupID
+        Specify the GroupID for a Win32 application assignment
+    .PARAMETER Nofification 
+        Specify the Notification parameter for the assignment
+    .PARAMETER DeliveryOptimization 
+        Specify the DeliveryOptimization parameter for the assignment
+    .PARAMETER GracePeriod 
+        Specify the GracePeriod parameter for the assignment
+    .PARAMETER RestartCountDown 
+        Specify the RestartCountDown parameter for the assignment
+    .PARAMETER RestartSnooze 
+        Specify the RestartSnooze parameter for the assignment
+    .PARAMETER DeadlineInDays 
+        Specify the DeadLine in Days parameter for the assignment
+    .NOTES
+        Author:      Jan Ketil Skanke
+        Contact:     @JankeSkanke
+        Created:     2020-05-10
+        Updated:     2020-05-10
+        Version history:
+        1.0.0 - (2020-04-29) Function created
+    #>
     param(
         [Parameter(Mandatory=$true)]
         $Header,
@@ -316,7 +371,7 @@ function Remove-IntuneAppAssignment{
     catch [System.Exception] {
         Write-Warning -Message "An error occurred while removing app assignment. Error message: $($_.Exception.Message)"
     }        
-}
+}#endfunction
 function Get-DeviceAppInstallState{
     <#
     .SYNOPSIS
@@ -356,6 +411,21 @@ function Get-DeviceAppInstallState{
     }
 }#endfunction 
 Function GetNameStringForIntuneSearch{
+    <#
+    .SYNOPSIS
+        Get Application simplified string for search via Graph Api
+    .DESCRIPTION
+        Get Application simplified string for search via Graph Api
+    .PARAMETER name
+        Specify the full name for the application
+    .NOTES
+        Author:      Jan Ketil Skanke 
+        Contact:     @JankeSkanke
+        Created:     2020-04-29
+        Updated:     2020-04-29
+        Version history:
+        1.0.0 - (2020-05-05) Function created
+    #>
     param (
         [string]$name)
         if ($name -match "\d+\.\d+(\.\d+)?(\.\d+)?")
@@ -367,45 +437,92 @@ Function GetNameStringForIntuneSearch{
     return $name
 }#endfunction
 function Invoke-CreateAADGroup{
-        param (
-            [Parameter(Mandatory=$true)]
-            $Header,
+    <#
+    .SYNOPSIS
+        Create AzureAD Device Group for Patch Remediation
+    .DESCRIPTION
+        Create AzureAD Device Group for Patch Remediation
+    .PARAMETER DisplayName
+        The groups Displayname in Azure AD
+    .PARAMETER Description
+        The group description on the group in Azure AD
+    .NOTES
+        Author:      Jan Ketil Skanke 
+        Contact:     @JankeSkanke
+        Created:     2020-04-29
+        Updated:     2020-04-29
+        Version history:
+        1.0.0 - (2020-05-05) Function created
+    #>
+    param (
+        [Parameter(Mandatory=$true)]
+        $Header,
 
-            [Parameter(Mandatory=$true)]
-            $Description,
+        [Parameter(Mandatory=$true)]
+        $Description,
 
-            [Parameter(Mandatory=$true)]
-            $DisplayName
-        )
-        $newGroupJSONObject = @{
-            "description" = $Description
-            "displayName"= $DisplayName
-            "mailEnabled" = $false
-            "mailNickname" = "none"
-            "securityEnabled" = $true
-        } | ConvertTo-Json
-        $Group = Invoke-RestMethod -Method POST -Uri 'https://graph.microsoft.com/beta/groups/' -ContentType "application/json" -Headers $Header -Body $newGroupJSONObject 
-        Return $Group    
+        [Parameter(Mandatory=$true)]
+        $DisplayName
+    )
+    $newGroupJSONObject = @{
+        "description" = $Description
+        "displayName"= $DisplayName
+        "mailEnabled" = $false
+        "mailNickname" = "none"
+        "securityEnabled" = $true
+    } | ConvertTo-Json
+    $Group = Invoke-RestMethod -Method POST -Uri 'https://graph.microsoft.com/beta/groups/' -ContentType "application/json" -Headers $Header -Body $newGroupJSONObject 
+    Return $Group    
 }#endfunction
 function Get-AADPatchingGroup{
-        param (
-            [Parameter(Mandatory=$true)]
-            $Header,
+    <#
+    .SYNOPSIS
+        Get AzureAD Device Group used for Patch Remediation
+    .DESCRIPTION
+        Get AzureAD Device Group used for Patch Remediation
+    .PARAMETER GroupName
+        Name of the Group in Azure AD
+    .NOTES
+        Author:      Jan Ketil Skanke 
+        Contact:     @JankeSkanke
+        Created:     2020-04-29
+        Updated:     2020-04-29
+        Version history:
+        1.0.0 - (2020-05-05) Function created
+    #>
+    param (
+        [Parameter(Mandatory=$true)]
+        $Header,
 
-            [Parameter(Mandatory=$true)]
-            $GroupName
-        )
-        try {
-            # Attempt to call Graph and retrieve AAD Group
-            $uri = "https://graph.microsoft.com/beta/groups?`$filter=displayname eq '$GroupName'"
-            $Group = Invoke-RestMethod -Method "GET" -Uri $uri -ContentType "application/json" -Headers $Header -ErrorAction Stop
-            Return $Group
-        }
-        catch [System.Exception] {
-            Write-Warning -Message "An error occurred while retrieving Group with GroupName: $($GroupName). Error message: $($_.Exception.Message)"
-        }
+        [Parameter(Mandatory=$true)]
+        $GroupName
+    )
+    try {
+        # Attempt to call Graph and retrieve AAD Group
+        $uri = "https://graph.microsoft.com/beta/groups?`$filter=displayname eq '$GroupName'"
+        $Group = Invoke-RestMethod -Method "GET" -Uri $uri -ContentType "application/json" -Headers $Header -ErrorAction Stop
+        Return $Group
+    }
+    catch [System.Exception] {
+        Write-Warning -Message "An error occurred while retrieving Group with GroupName: $($GroupName). Error message: $($_.Exception.Message)"
+    }
 }#endfunction
 function Remove-AADPatchingGroup{
+    <#
+    .SYNOPSIS
+        Remove AzureAD Device Group used for Patch Remediation
+    .DESCRIPTION
+        Remove AzureAD Device Group used for Patch Remediation
+    .PARAMETER GroupID
+        The GroupID of the Group in Azure AD to remove
+    .NOTES
+        Author:      Jan Ketil Skanke 
+        Contact:     @JankeSkanke
+        Created:     2020-04-29
+        Updated:     2020-04-29
+        Version history:
+        1.0.0 - (2020-05-05) Function created
+    #>
     param (
         [Parameter(Mandatory=$true)]
         $Header,
@@ -429,8 +546,8 @@ function Add-DeviceToAADGroup{
         Add Devices to AAD Group
     .DESCRIPTION
         Add Devices to AAD Group
-    .PARAMETER ID
-        Specify the ID for a Win32 application.
+    .PARAMETER DeviceID
+        Specify the DeviceID to add to group
     .NOTES
         Author:      Jan Ketil Skanke 
         Contact:     @JankeSkanke
