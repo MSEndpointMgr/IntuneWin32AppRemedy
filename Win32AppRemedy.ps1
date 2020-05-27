@@ -40,7 +40,6 @@ param (
 $ClientID = Get-AutomationVariable -Name 'ClientID'
 $ClientSecret = Get-AutomationVariable -Name 'ClientSecret'
 $TenantID = Get-AutomationVariable -Name 'TenantID'
-$TeamsWebHook = Get-AutomationVariable -Name 'TeamsReportChannelWebHook'
 $TeamsReporting = Get-AutomationVariable -Name 'TeamsReporting'
 Write-Output "Declarations done"
 #endregion Initialize
@@ -646,6 +645,7 @@ if ($Header) {
 
     #If Teams Reporting is set to True in Runbook Variable
     if ($TeamsReporting){
+        $TeamsWebHook = Get-AutomationVariable -Name 'TeamsReportChannelWebHook'
         #Finding app name - stripping out version for search 
         $AppSearchName = GetNameStringForIntuneSearch -name $UpdatedAppVersion
         $AppSearchUri = "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps?`$filter=isof('microsoft.graph.win32LobApp')&`$search=`"$AppSearchName`"&Select=id, displayName"
