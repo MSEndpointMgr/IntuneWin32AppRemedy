@@ -242,7 +242,7 @@ function Add-IntuneWin32AppAssignment {
     #>
     param(
         [Parameter(Mandatory=$true)]
-        $Header,
+        [string]$Header,
 
         [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -281,31 +281,60 @@ function Add-IntuneWin32AppAssignment {
     #Define install deadline 
     [string]$Deadline = Get-Date((Get-Date).AddDays($DeadlineInDays)) -Format "yyyy-MM-ddTHH:mm:ssZ"
     
-    # Construct table for Win32 app assignment body
-    $Win32AppAssignmentBody = [ordered]@{
-        "@odata.type" = "#microsoft.graph.mobileAppAssignment"
-        "intent" = "required"
-        "source" = "direct"
-        "target" = @{
-            "@odata.type" = "#microsoft.graph.groupAssignmentTarget"
-            "groupId" = "$GroupID"
-        }
-        "settings" = @{
-            "@odata.type" = "#microsoft.graph.win32LobAppAssignmentSettings"
-            "notifications" = "$Notification"
-            "deliveryOptimizationPriority" = "$DeliveryOptimization"
-    
-            "restartSettings" = @{
-                "gracePeriodInMinutes" = "$GracePeriod"
-                "countdownDisplayBeforeRestartInMinutes" = "$RestartCountDown"
-                "restartNotificationSnoozeDurationInMinutes" = "$RestartSnooze"
+    $Win32AppUri =  "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/$($AppID)"
+    $Win32App = Invoke-RestMethod -Method Get -Uri $Win32AppUri -ContentType "application/json" -Headers $Header
+    Write-Output "Restart behavior is set to $($Win32App.installExperience.deviceRestartBehavior)"
+    if (($Win32App.installExperience.deviceRestartBehavior -eq "basedOnReturnCode") -or ($Win32App.installExperience.deviceRestartBehavior -eq "force"))
+        {
+        Write-Output "Assigning app with Restart Grace"
+        $Win32AppAssignmentBody = [ordered]@{
+            "@odata.type" = "#microsoft.graph.mobileAppAssignment"
+            "intent" = "required"
+            "source" = "direct"
+            "target" = @{
+                "@odata.type" = "#microsoft.graph.groupAssignmentTarget"
+                "groupId" = "$GroupID"
             }
-            "installTimeSettings" = @{
-                "useLocalTime" = $true
-                "startDateTime" = $null
-                "deadlineDateTime" = $Deadline
+            "settings" = @{
+                "@odata.type" = "#microsoft.graph.win32LobAppAssignmentSettings"
+                "notifications" = "$Notification"
+                "deliveryOptimizationPriority" = "$DeliveryOptimization"
+        
+                "restartSettings" = @{
+                    "gracePeriodInMinutes" = "$GracePeriod"
+                    "countdownDisplayBeforeRestartInMinutes" = "$RestartCountDown"
+                    "restartNotificationSnoozeDurationInMinutes" = "$RestartSnooze"
+                }
+                "installTimeSettings" = @{
+                    "useLocalTime" = $true
+                    "startDateTime" = $null
+                    "deadlineDateTime" = $Deadline
+                }
             }
         }
+    }
+    else{
+        Write-Output "Assigning app without Restart Grace, grace not applicable"
+        # Construct table for Win32 app assignment body
+        $Win32AppAssignmentBody = [ordered]@{
+            "@odata.type" = "#microsoft.graph.mobileAppAssignment"
+            "intent" = "required"
+            "source" = "direct"
+            "target" = @{
+                "@odata.type" = "#microsoft.graph.groupAssignmentTarget"
+                "groupId" = "$GroupID"
+            }
+            "settings" = @{
+                "@odata.type" = "#microsoft.graph.win32LobAppAssignmentSettings"
+                "notifications" = "$Notification"
+                "deliveryOptimizationPriority" = "$DeliveryOptimization"
+                "installTimeSettings" = @{
+                    "useLocalTime" = $true
+                    "startDateTime" = $null
+                    "deadlineDateTime" = $Deadline
+                }
+            }
+        }    
     }
     Write-Output ($Win32AppAssignmentBody | ConvertTo-Json)
     $uri = -join ("https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/", $AppID ,"/assignments")
