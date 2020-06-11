@@ -39,8 +39,8 @@
 )
 #region Initialize
 #Fetching all variables from the Automation Account
-$ClientID = Get-AutomationVariable -Name 'ClientID2'
-$ClientSecret = Get-AutomationVariable -Name 'ClientSecret2'
+$ClientID = Get-AutomationVariable -Name 'ClientID'
+$ClientSecret = Get-AutomationVariable -Name 'ClientSecret'
 $TenantID = Get-AutomationVariable -Name 'TenantID'
 $TeamsReporting = Get-AutomationVariable -Name 'TeamsReporting'
 Write-Output "Declarations done"
