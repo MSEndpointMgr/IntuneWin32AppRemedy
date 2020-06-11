@@ -17,4 +17,4 @@ An Azure automation runbook to automaticly patch Win32 Available apps in MSIntun
 - TeamsReportChannelWebHook
 
 ## Implementation
-For full instruction and explanations, go to https://msendpointmgr.com
+For full instruction and explanations, go to https://msendpointmgr.com/2020/05/26/automated-3rdparty-patch-remediation-in-intune-with-azure-automation/
