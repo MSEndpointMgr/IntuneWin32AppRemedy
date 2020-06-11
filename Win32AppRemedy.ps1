@@ -9,6 +9,7 @@
     .DESCRIPTION
         Win32AppRemedy is used to remediate updates for Win32Apps that are assigned as available by using Device Based patching groups. 
         These groups are dynamicly created based on devices that have the previous version installed, app is assigned as required to these groups with a deadline for install. 
+        Teams reporting will publish a message card to a chosen teams channel.
     .PARAMETER OrgAppID
         Input parameter Intune AppID for the current application version
     .PARAMETER UpdatedAppID
@@ -24,8 +25,9 @@
         Updated:     2020-03-29
         Version history:
         1.0.0 - (2020-05-20) Initial Version with app remediation groups
+        1.0.1 - (2020-06-11) Buxfix for no devices needing updates for Teams Reporting and Restartbehaviortype for App assignment. 
     #>    
-param (
+    param (
         [parameter(Mandatory = $true)]
         $OrgAppID,
         [parameter(Mandatory = $true)]
@@ -37,8 +39,8 @@ param (
 )
 #region Initialize
 #Fetching all variables from the Automation Account
-$ClientID = Get-AutomationVariable -Name 'ClientID'
-$ClientSecret = Get-AutomationVariable -Name 'ClientSecret'
+$ClientID = Get-AutomationVariable -Name 'ClientID2'
+$ClientSecret = Get-AutomationVariable -Name 'ClientSecret2'
 $TenantID = Get-AutomationVariable -Name 'TenantID'
 $TeamsReporting = Get-AutomationVariable -Name 'TeamsReporting'
 Write-Output "Declarations done"
@@ -242,7 +244,7 @@ function Add-IntuneWin32AppAssignment {
     #>
     param(
         [Parameter(Mandatory=$true)]
-        [string]$Header,
+        $Header,
 
         [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -695,7 +697,7 @@ if ($Header) {
                 }
             }
         }
-        if ($DeviceNames -ne $null){
+        if (-not ([string]::IsNullOrEmpty($DeviceNames))){
             $DeviceNames = $DeviceNames | Sort-Object -Unique
             $StatusText =  -join($DeviceNames.count, " devices needs an update to ", $UpdatedAppVersion)
             $StatusColor = "FFFF00"
@@ -709,11 +711,11 @@ if ($Header) {
             Invoke-TeamsMessage -teamswebhook $TeamsWebHook -UpdateStatus $StatusText -DeviceName $DeviceNameString -text $text -StatusColor $statuscolor| Out-Null
         }
         else {
-            $DeviceNames = "Not Applicable"
+            $DeviceNames = "No Devices"
             $StatusText = "No devices is currently using a previous version of $UpdatedAppVersion"
             $StatusColor = "008000"
             $Text = "No devices is currently using a previous version of $UpdatedAppVersion"
-            Invoke-TeamsMessage -teamswebhook $TeamsWebHook -UpdateStatus $StatusText -DeviceName $DeviceNameString -text $text -StatusColor $statuscolor| Out-Null
+            Invoke-TeamsMessage -teamswebhook $TeamsWebHook -UpdateStatus $StatusText -DeviceName $DeviceNames -text $text -StatusColor $statuscolor| Out-Null
         }
     }
     else{
