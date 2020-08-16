@@ -2,7 +2,7 @@
 
 An Azure automation runbook to automaticly patch Win32 Available apps in MSIntune and integration with Proactive Remediations for End User notifications and local detection. 
 
-## Parameters required at Runtime
+## Parameters required at Runtime 
 
 - Old App Intune AppiD
 - Old App Intune Name (Version)
